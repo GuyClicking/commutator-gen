@@ -102,7 +102,7 @@ impl Move {
 const MOVES: [Move; 9] = [R, R2, Rp, U, U2, Up, F, F2, Fp];
 
 // TODO write funky formatting
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Sequence {
     moves: Vec<Move>,
 }
@@ -126,8 +126,10 @@ impl Sequence {
     }
 
     fn simplify(mut self) -> Self {
+        // use joey's implementation which creates a new vector
         let mut i: isize = 0;
         while ((i + 1) as usize) < self.len() {
+            let mut increment = true;
             if self.moves[i as usize].same_type(&self.moves[i as usize + 1]) {
                 if let Some(new_move) =
                     self.moves[i as usize].apply_same_type(&self.moves[i as usize + 1])
@@ -138,13 +140,15 @@ impl Sequence {
                     self.moves.remove(i as usize);
                     self.moves.remove(i as usize);
                 }
-                i -= 1;
                 if i > 1 {
                     i -= 1;
                 }
+                increment = false;
             }
 
-            i += 1;
+            if increment {
+                i += 1;
+            }
         }
         self
     }
@@ -172,20 +176,6 @@ impl Sequence {
         // dies
         let end = self.moves[self.len() - 1].clone();
         end.same_type(mv)
-    }
-}
-
-impl PartialEq for Sequence {
-    fn eq(&self, other: &Self) -> bool {
-        if self.len() != other.len() {
-            return false;
-        }
-        for i in 0..self.len() {
-            if self.moves[i] != other.moves[i] {
-                return false;
-            }
-        }
-        true
     }
 }
 
@@ -276,25 +266,8 @@ fn find_comm_2(sol: Sequence) -> (Sequence, Sequence) {
 fn main() {
     let moves = Sequence {
         moves: vec![F, R, U, Rp, Up, Fp],
-        //moves: vec![R, U, Rp, U, R, U2, Rp],
-        //moves: vec![R, U, Rp, Up],
-        //moves: vec![U2, R, Up, Rp, Up],
     };
     let (a, b) = find_comm_2(moves);
 
     println!("[{:?}, {:?}]", a, b);
-
-    //    let (a, b) = (
-    //        Sequence {
-    //            moves: vec![R, U, R2],
-    //        },
-    //        Sequence {
-    //            moves: vec![R, U2, R2],
-    //        },
-    //    );
-    //    println!("[{:?}, {:?}]", a, b);
-    //    let alg = Sequence::from_comm(&a, &b);
-    //    println!("{:?}", alg);
-    //    let simplify = alg.simplify();
-    //    println!("{:?}", simplify);
 }
