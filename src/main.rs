@@ -1,7 +1,5 @@
 // we are trying to find a comm for F R U R' U' F'
-use std::collections::VecDeque;
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Move {
     R,
     R2,
@@ -12,6 +10,9 @@ enum Move {
     F,
     F2,
     Fp,
+    D,
+    D2,
+    Dp,
 }
 use Move::*;
 
@@ -27,15 +28,19 @@ impl Move {
             F => Fp,
             F2 => F2,
             Fp => F,
+            D => Dp,
+            D2 => D2,
+            Dp => D,
         }
     }
 
     fn same_type(&self, mv: &Move) -> bool {
-        let term = self.clone();
+        let term = *self;
         match mv {
             R | R2 | Rp => term == R || term == R2 || term == Rp,
             U | U2 | Up => term == U || term == U2 || term == Up,
             F | F2 | Fp => term == F || term == F2 || term == Fp,
+            D | D2 | Dp => term == D || term == D2 || term == Dp,
         }
     }
 
@@ -95,11 +100,29 @@ impl Move {
                 Fp => Some(F2),
                 _ => unreachable!(),
             },
+            D => match mv {
+                D => Some(D2),
+                D2 => Some(Dp),
+                Dp => None,
+                _ => unreachable!(),
+            },
+            D2 => match mv {
+                D => Some(Dp),
+                D2 => None,
+                Dp => Some(D),
+                _ => unreachable!(),
+            },
+            Dp => match mv {
+                D => None,
+                D2 => Some(D),
+                Dp => Some(D2),
+                _ => unreachable!(),
+            },
         }
     }
 }
 
-const MOVES: [Move; 9] = [R, R2, Rp, U, U2, Up, F, F2, Fp];
+const MOVES: [Move; 8] = [R, Rp, U, Up, F, Fp, D, Dp];
 
 // TODO write funky formatting
 #[derive(Debug, Clone, PartialEq)]
@@ -174,88 +197,63 @@ impl Sequence {
             return false;
         }
         // dies
-        let end = self.moves[self.len() - 1].clone();
+        let end = self.moves[self.len() - 1];
         end.same_type(mv)
     }
 }
 
-// This explodes ram
-fn find_comm_1(sol: Sequence) -> (Sequence, Sequence) {
-    let mut queue: VecDeque<(Sequence, Sequence)> = VecDeque::new();
-    queue.push_back((Sequence::empty(), Sequence::empty()));
-
-    let mut nodes = 0;
-    while let Some((a, b)) = queue.pop_front() {
-        nodes += 1;
-        if nodes % 32768 == 0 {
-            println!("{} nodes", nodes);
-            println!("{:?} {:?}", a, b);
-        }
-        if sol == Sequence::from_comm(&a, &b) {
-            return (a, b);
-        }
-        for mv in MOVES {
-            // clones are ugly! yikes!
-            if !a.ends_with_type(&mv) {
-                let mut a = a.clone();
-                a.push(mv.clone());
-                queue.push_back((a, b.clone()));
-            }
-            if !b.ends_with_type(&mv) {
-                let mut b = b.clone();
-                b.push(mv);
-                queue.push_back((a.clone(), b));
-            }
-        }
-    }
-
-    unreachable!()
-}
-
-fn find_comm_2_search(
+fn find_comm_search(
     sol: &Sequence,
-    a: Sequence,
-    b: Sequence,
+    a: &mut Sequence,
+    b: &mut Sequence,
     depth: usize,
     nodes: &mut usize,
+    b_mode: bool,
 ) -> Option<(Sequence, Sequence)> {
     *nodes += 1;
     if *nodes % 32768 == 0 {
         println!("{} nodes", nodes);
     }
     if depth == 0 {
-        if *sol == Sequence::from_comm(&a, &b) {
-            return Some((a, b));
+        if *sol == Sequence::from_comm(a, b) {
+            return Some((a.clone(), b.clone()));
         } else {
             return None;
         }
     }
     for mv in MOVES {
         // clones are ugly! yikes!
-        if !a.ends_with_type(&mv) {
-            let mut a = a.clone();
-            a.push(mv.clone());
-            if let Some((a, b)) = find_comm_2_search(sol, a, b.clone(), depth - 1, nodes) {
+        if !b_mode && !a.ends_with_type(&mv) {
+            a.push(mv);
+            if let Some((a, b)) = find_comm_search(sol, a, b, depth - 1, nodes, false) {
                 return Some((a, b));
             }
-        }
-        if !b.ends_with_type(&mv) {
-            let mut b = b.clone();
+            if let Some((a, b)) = find_comm_search(sol, a, b, depth - 1, nodes, true) {
+                return Some((a, b));
+            }
+            a.moves.pop();
+        } else if b_mode && !b.ends_with_type(&mv) {
             b.push(mv);
-            if let Some((a, b)) = find_comm_2_search(sol, a.clone(), b, depth - 1, nodes) {
+            if let Some((a, b)) = find_comm_search(sol, a, b, depth - 1, nodes, true) {
                 return Some((a, b));
             }
+            b.moves.pop();
         }
     }
     None
 }
 
-fn find_comm_2(sol: Sequence) -> (Sequence, Sequence) {
+fn find_comm(sol: Sequence) -> (Sequence, Sequence) {
     let mut nodes = 0;
     for i in 1.. {
-        if let Some(sol) =
-            find_comm_2_search(&sol, Sequence::empty(), Sequence::empty(), i, &mut nodes)
-        {
+        if let Some(sol) = find_comm_search(
+            &sol,
+            &mut Sequence::empty(),
+            &mut Sequence::empty(),
+            i,
+            &mut nodes,
+            false,
+        ) {
             println!("Solved in {} nodes!", nodes);
             return sol;
         }
@@ -265,9 +263,11 @@ fn find_comm_2(sol: Sequence) -> (Sequence, Sequence) {
 
 fn main() {
     let moves = Sequence {
+        //moves: vec![R2, F, Rp, U, R, Fp, R2, U, R, U2 Rp],
         moves: vec![F, R, U, Rp, Up, Fp],
+        //moves: vec![R, U, Rp, Up, F, D, Fp, Dp],
     };
-    let (a, b) = find_comm_2(moves);
+    let (a, b) = find_comm(moves);
 
     println!("[{:?}, {:?}]", a, b);
 }
