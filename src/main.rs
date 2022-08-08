@@ -1,128 +1,113 @@
 // we are trying to find a comm for F R U R' U' F'
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Move {
+enum MoveType {
     R,
-    R2,
-    Rp,
     U,
-    U2,
-    Up,
     F,
-    F2,
-    Fp,
     D,
-    D2,
-    Dp,
 }
-use Move::*;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum MoveDir {
+    Clockwise,
+    Double,
+    Anticlockwise,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Move {
+    ty: MoveType,
+    dir: MoveDir,
+}
+
+const R: Move = Move {
+    ty: MoveType::R,
+    dir: MoveDir::Clockwise,
+};
+const R2: Move = Move {
+    ty: MoveType::R,
+    dir: MoveDir::Double,
+};
+const RP: Move = Move {
+    ty: MoveType::R,
+    dir: MoveDir::Anticlockwise,
+};
+const U: Move = Move {
+    ty: MoveType::U,
+    dir: MoveDir::Clockwise,
+};
+const U2: Move = Move {
+    ty: MoveType::U,
+    dir: MoveDir::Double,
+};
+const UP: Move = Move {
+    ty: MoveType::U,
+    dir: MoveDir::Anticlockwise,
+};
+const F: Move = Move {
+    ty: MoveType::F,
+    dir: MoveDir::Clockwise,
+};
+const F2: Move = Move {
+    ty: MoveType::F,
+    dir: MoveDir::Double,
+};
+const FP: Move = Move {
+    ty: MoveType::F,
+    dir: MoveDir::Anticlockwise,
+};
+const D: Move = Move {
+    ty: MoveType::D,
+    dir: MoveDir::Clockwise,
+};
+const D2: Move = Move {
+    ty: MoveType::D,
+    dir: MoveDir::Double,
+};
+const DP: Move = Move {
+    ty: MoveType::D,
+    dir: MoveDir::Anticlockwise,
+};
 
 impl Move {
     fn inverse(&self) -> Self {
-        match self {
-            R => Rp,
-            R2 => R2,
-            Rp => R,
-            U => Up,
-            U2 => U2,
-            Up => U,
-            F => Fp,
-            F2 => F2,
-            Fp => F,
-            D => Dp,
-            D2 => D2,
-            Dp => D,
-        }
+        let dir = match self.dir {
+            MoveDir::Clockwise => MoveDir::Anticlockwise,
+            MoveDir::Double => MoveDir::Double,
+            MoveDir::Anticlockwise => MoveDir::Clockwise,
+        };
+        Move { ty: self.ty, dir }
     }
 
     fn same_type(&self, mv: &Move) -> bool {
-        let term = *self;
-        match mv {
-            R | R2 | Rp => term == R || term == R2 || term == Rp,
-            U | U2 | Up => term == U || term == U2 || term == Up,
-            F | F2 | Fp => term == F || term == F2 || term == Fp,
-            D | D2 | Dp => term == D || term == D2 || term == Dp,
-        }
+        self.ty == mv.ty
     }
 
     fn apply_same_type(&self, mv: &Move) -> Option<Move> {
-        match self {
-            R => match mv {
-                R => Some(R2),
-                R2 => Some(Rp),
-                Rp => None,
-                _ => unreachable!(),
+        assert_eq!(self.ty, mv.ty);
+        let dir = match self.dir {
+            MoveDir::Clockwise => match mv.dir {
+                MoveDir::Clockwise => MoveDir::Double,
+                MoveDir::Double => MoveDir::Anticlockwise,
+                MoveDir::Anticlockwise => return None,
             },
-            R2 => match mv {
-                R => Some(Rp),
-                R2 => None,
-                Rp => Some(R),
-                _ => unreachable!(),
+            MoveDir::Double => match mv.dir {
+                MoveDir::Clockwise => MoveDir::Anticlockwise,
+                MoveDir::Double => return None,
+                MoveDir::Anticlockwise => MoveDir::Clockwise,
             },
-            Rp => match mv {
-                R => None,
-                R2 => Some(R),
-                Rp => Some(R2),
-                _ => unreachable!(),
+            MoveDir::Anticlockwise => match mv.dir {
+                MoveDir::Clockwise => return None,
+                MoveDir::Double => MoveDir::Clockwise,
+                MoveDir::Anticlockwise => MoveDir::Double,
             },
-            U => match mv {
-                U => Some(U2),
-                U2 => Some(Up),
-                Up => None,
-                _ => unreachable!(),
-            },
-            U2 => match mv {
-                U => Some(Up),
-                U2 => None,
-                Up => Some(U),
-                _ => unreachable!(),
-            },
-            Up => match mv {
-                U => None,
-                U2 => Some(U),
-                Up => Some(U2),
-                _ => unreachable!(),
-            },
-            F => match mv {
-                F => Some(F2),
-                F2 => Some(Fp),
-                Fp => None,
-                _ => unreachable!(),
-            },
-            F2 => match mv {
-                F => Some(Fp),
-                F2 => None,
-                Fp => Some(F),
-                _ => unreachable!(),
-            },
-            Fp => match mv {
-                F => None,
-                F2 => Some(F),
-                Fp => Some(F2),
-                _ => unreachable!(),
-            },
-            D => match mv {
-                D => Some(D2),
-                D2 => Some(Dp),
-                Dp => None,
-                _ => unreachable!(),
-            },
-            D2 => match mv {
-                D => Some(Dp),
-                D2 => None,
-                Dp => Some(D),
-                _ => unreachable!(),
-            },
-            Dp => match mv {
-                D => None,
-                D2 => Some(D),
-                Dp => Some(D2),
-                _ => unreachable!(),
-            },
-        }
+        };
+
+        Some(Move { ty: self.ty, dir })
     }
 }
 
-const MOVES: [Move; 8] = [R, Rp, U, Up, F, Fp, D, Dp];
+const MOVES: [Move; 9] = [R, R2, RP, U, U2, UP, F, F2, FP];
 
 // TODO write funky formatting
 #[derive(Debug, Clone, PartialEq)]
@@ -136,32 +121,29 @@ impl Sequence {
     }
 
     fn from_comm(a: &Sequence, b: &Sequence) -> Self {
-        let mut r = vec![];
-        let mut a = a.clone();
-        let mut ap = a.clone().inverse();
-        let mut b = b.clone();
-        let mut bp = b.clone().inverse();
-        r.append(&mut a.moves);
-        r.append(&mut b.moves);
-        r.append(&mut ap.moves);
-        r.append(&mut bp.moves);
-        Sequence { moves: r }.simplify()
+        let mut r = Sequence {
+            moves: Vec::with_capacity(2 * a.moves.len() + 2 * b.moves.len()),
+        };
+        r.append(a);
+        r.append(b);
+        r.append_inverse(a);
+        r.append_inverse(b);
+        r.simplify();
+        r
     }
 
-    fn simplify(mut self) -> Self {
-        // use joey's implementation which creates a new vector
-        let mut i: isize = 0;
-        while ((i + 1) as usize) < self.len() {
+    fn simplify(&mut self) {
+        // use joey's implementation which creates a new vector maybe?
+        let mut i = 0;
+        while i + 1 < self.len() {
             let mut increment = true;
-            if self.moves[i as usize].same_type(&self.moves[i as usize + 1]) {
-                if let Some(new_move) =
-                    self.moves[i as usize].apply_same_type(&self.moves[i as usize + 1])
-                {
+            if self.moves[i].same_type(&self.moves[i + 1]) {
+                if let Some(new_move) = self.moves[i].apply_same_type(&self.moves[i + 1]) {
                     self.moves[i as usize] = new_move;
-                    self.moves.remove(i as usize + 1);
+                    self.moves.remove(i + 1);
                 } else {
-                    self.moves.remove(i as usize);
-                    self.moves.remove(i as usize);
+                    self.moves.remove(i);
+                    self.moves.remove(i);
                 }
                 if i > 1 {
                     i -= 1;
@@ -173,19 +155,22 @@ impl Sequence {
                 i += 1;
             }
         }
-        self
-    }
-
-    fn inverse(self) -> Self {
-        let mut r = vec![];
-        for mv in self.moves.into_iter().rev() {
-            r.push(mv.inverse());
-        }
-        Sequence { moves: r }
     }
 
     fn push(&mut self, mv: Move) {
         self.moves.push(mv)
+    }
+
+    fn append(&mut self, s: &Sequence) {
+        for mv in &s.moves {
+            self.push(*mv);
+        }
+    }
+
+    fn append_inverse(&mut self, s: &Sequence) {
+        for mv in s.moves.iter().rev() {
+            self.push(mv.inverse());
+        }
     }
 
     fn len(&self) -> usize {
@@ -263,9 +248,9 @@ fn find_comm(sol: Sequence) -> (Sequence, Sequence) {
 
 fn main() {
     let moves = Sequence {
-        //moves: vec![R2, F, Rp, U, R, Fp, R2, U, R, U2 Rp],
-        moves: vec![F, R, U, Rp, Up, Fp],
-        //moves: vec![R, U, Rp, Up, F, D, Fp, Dp],
+        //moves: vec![R2, F, RP, U, R, FP, R2, U, R, U2 RP],
+        moves: vec![F, R, U, RP, UP, FP],
+        //moves: vec![R, U, RP, UP, F, D, FP, DP],
     };
     let (a, b) = find_comm(moves);
 
