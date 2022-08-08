@@ -20,10 +20,12 @@ struct Move {
     dir: MoveDir,
 }
 
+#[allow(dead_code)]
 const R: Move = Move {
     ty: MoveType::R,
     dir: MoveDir::Clockwise,
 };
+#[allow(dead_code)]
 const R2: Move = Move {
     ty: MoveType::R,
     dir: MoveDir::Double,
@@ -32,38 +34,47 @@ const RP: Move = Move {
     ty: MoveType::R,
     dir: MoveDir::Anticlockwise,
 };
+#[allow(dead_code)]
 const U: Move = Move {
     ty: MoveType::U,
     dir: MoveDir::Clockwise,
 };
+#[allow(dead_code)]
 const U2: Move = Move {
     ty: MoveType::U,
     dir: MoveDir::Double,
 };
+#[allow(dead_code)]
 const UP: Move = Move {
     ty: MoveType::U,
     dir: MoveDir::Anticlockwise,
 };
+#[allow(dead_code)]
 const F: Move = Move {
     ty: MoveType::F,
     dir: MoveDir::Clockwise,
 };
+#[allow(dead_code)]
 const F2: Move = Move {
     ty: MoveType::F,
     dir: MoveDir::Double,
 };
+#[allow(dead_code)]
 const FP: Move = Move {
     ty: MoveType::F,
     dir: MoveDir::Anticlockwise,
 };
+#[allow(dead_code)]
 const D: Move = Move {
     ty: MoveType::D,
     dir: MoveDir::Clockwise,
 };
+#[allow(dead_code)]
 const D2: Move = Move {
     ty: MoveType::D,
     dir: MoveDir::Double,
 };
+#[allow(dead_code)]
 const DP: Move = Move {
     ty: MoveType::D,
     dir: MoveDir::Anticlockwise,
@@ -196,20 +207,23 @@ fn find_comm_search(
     b_mode: bool,
 ) -> Option<(Sequence, Sequence)> {
     *nodes += 1;
-    if *nodes % 32768 == 0 {
-        println!("{} nodes", nodes);
-    }
+    //if *nodes % 32768 == 0 {
+    //println!("{} nodes", nodes);
+    //}
     if depth == 0 {
-        if *sol == Sequence::from_comm(a, b) {
+        if b_mode && *sol == Sequence::from_comm(a, b) {
             return Some((a.clone(), b.clone()));
         } else {
             return None;
         }
     }
     for mv in MOVES {
-        // clones are ugly! yikes!
         if !b_mode && !a.ends_with_type(&mv) {
             a.push(mv);
+            if a.moves[0].ty != sol.moves[0].ty {
+                a.moves.pop();
+                continue;
+            }
             if let Some((a, b)) = find_comm_search(sol, a, b, depth - 1, nodes, false) {
                 return Some((a, b));
             }
@@ -231,6 +245,7 @@ fn find_comm_search(
 fn find_comm(sol: Sequence) -> (Sequence, Sequence) {
     let mut nodes = 0;
     for i in 1.. {
+        println!("Depth {}", i);
         if let Some(sol) = find_comm_search(
             &sol,
             &mut Sequence::empty(),
@@ -251,6 +266,7 @@ fn main() {
         //moves: vec![R2, F, RP, U, R, FP, R2, U, R, U2 RP],
         moves: vec![F, R, U, RP, UP, FP],
         //moves: vec![R, U, RP, UP, F, D, FP, DP],
+        //moves: vec![R2, U2, R2, U2, R, U, RP, UP],
     };
     let (a, b) = find_comm(moves);
 
